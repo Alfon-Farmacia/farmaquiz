@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>FarmaQuiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--gold:#f1c40f;--gold2:#e67e22;--bg:#0d1137;--ans-a:#c0392b;--ans-b:#2471a3;--ans-c:#d35400;--ans-d:#1e8449}
+body{font-family:'Nunito',sans-serif;background:var(--bg);min-height:100vh;color:#fff;overflow-x:hidden}
+
+/* STARS */
+.stars{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.star{position:absolute;background:#fff;border-radius:50%;animation:twinkle var(--dur,3s) var(--delay,0s) infinite}
+@keyframes twinkle{0%,100%{opacity:.2}50%{opacity:1}}
+
+/* SCREENS */
+.screen{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.screen.hidden{display:none!important}
+
+/* ─── START SCREEN ─── */
+#s-start{background:radial-gradient(ellipse at 50% 40%,#1a2a6e 0%,#0d1137 70%)}
+.logo{font-size:72px;text-align:center;margin-bottom:8px;animation:bounceIn .8s ease}
+.title{font-family:'Montserrat',sans-serif;font-size:2.8em;font-weight:900;text-align:center;
+  background:linear-gradient(135deg,#f1c40f,#e67e22,#f1c40f);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:2px}
+.subtitle{color:#99a;font-size:1em;text-align:center;margin-top:4px;margin-bottom:32px}
+.btn-gold{background:linear-gradient(135deg,#f1c40f,#e67e22);color:#1a1a1a;font-family:'Montserrat',sans-serif;
+  font-size:1.4em;font-weight:900;padding:16px 48px;border:none;border-radius:50px;cursor:pointer;
+  box-shadow:0 8px 32px rgba(241,196,15,.55);transition:all .2s}
+.btn-gold:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(241,196,15,.75)}
+.btn-gold:active{transform:translateY(0)}
+.start-info{display:flex;gap:20px;margin-top:28px}
+.info-box{background:rgba(255,255,255,.08);border-radius:12px;padding:14px 20px;text-align:center}
+.info-box span{display:block;font-family:'Montserrat',sans-serif;font-size:1.6em;font-weight:900;color:var(--gold)}
+.info-box small{font-size:.8em;color:#aab}
+
+/* ─── GAME SCREEN ─── */
+#s-game{justify-content:flex-start;padding:0}
+.g-header{width:100%;background:rgba(0,0,0,.55);padding:10px 16px;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;backdrop-filter:blur(8px);position:sticky;top:0;z-index:10}
+.g-qnum{font-size:.85em;color:#aab}
+.g-score{font-family:'Montserrat',sans-serif;font-size:1.1em;font-weight:900;color:var(--gold)}
+.timer-wrap{position:relative;width:48px;height:48px;flex-shrink:0}
+.timer-svg{transform:rotate(-90deg)}
+.t-bg{fill:none;stroke:rgba(255,255,255,.2);stroke-width:4}
+.t-fill{fill:none;stroke:var(--gold);stroke-width:4;stroke-linecap:round;
+  transition:stroke-dashoffset 1s linear,stroke .3s}
+.t-num{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-family:'Montserrat',sans-serif;font-weight:900;font-size:1em}
+
+.prog-bar{width:100%;height:5px;background:rgba(255,255,255,.15)}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .5s}
+
+.q-area{width:100%;max-width:680px;margin:0 auto;padding:14px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:12px}
+.q-cat{font-size:.8em;text-transform:uppercase;letter-spacing:2px;color:var(--gold);text-align:center}
+.q-card{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
+  border-radius:16px;padding:18px;text-align:center}
+.q-text{font-size:1.1em;font-weight:800;line-height:1.5}
+.q-img{width:100%;max-height:180px;object-fit:contain;border-radius:10px;margin-top:10px}
+
+/* Lifeline */
+.lifelines{display:flex;justify-content:center}
+.btn-lifeline{background:linear-gradient(135deg,#6c3483,#8e44ad);color:#fff;border:none;
+  border-radius:20px;padding:8px 20px;cursor:pointer;font-family:'Montserrat',sans-serif;
+  font-weight:800;font-size:.9em;display:flex;flex-direction:column;align-items:center;
+  box-shadow:0 4px 15px rgba(142,68,173,.5);transition:all .2s}
+.btn-lifeline:disabled{opacity:.35;cursor:not-allowed}
+.btn-lifeline:hover:not(:disabled){filter:brightness(1.2);transform:translateY(-2px)}
+.btn-lifeline small{font-size:.7em;opacity:.8}
+
+/* Answer buttons 2x2 */
+.answers-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ans-btn{border:none;border-radius:14px;padding:14px 10px;cursor:pointer;display:flex;align-items:flex-start;
+  gap:9px;font-family:'Nunito',sans-serif;font-size:.9em;font-weight:800;color:#fff;text-align:left;
+  transition:transform .15s,filter .15s,box-shadow .15s;min-height:68px;
+  box-shadow:0 4px 15px rgba(0,0,0,.35)}
+.ans-btn:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.18)}
+.ans-btn:active:not(:disabled){transform:translateY(0)}
+.ans-btn[data-o="a"]{background:linear-gradient(135deg,#962d22,#e74c3c)}
+.ans-btn[data-o="b"]{background:linear-gradient(135deg,#1a608a,#3498db)}
+.ans-btn[data-o="c"]{background:linear-gradient(135deg,#a84300,#f39c12)}
+.ans-btn[data-o="d"]{background:linear-gradient(135deg,#196f3d,#27ae60)}
+.ans-icon{font-size:1.3em;flex-shrink:0;margin-top:1px}
+.ans-letter{display:block;font-size:.75em;opacity:.75}
+.ans-text{flex:1;line-height:1.35}
+
+/* Answer states */
+.ans-btn.correct{background:linear-gradient(135deg,#1a5c33,#27ae60)!important;
+  box-shadow:0 0 28px rgba(39,174,96,.75)!important;animation:pulse-ok .45s ease}
+.ans-btn.wrong{background:linear-gradient(135deg,#6b1717,#c0392b)!important;opacity:.75}
+.ans-btn.dimmed{opacity:.3;filter:grayscale(60%)}
+.ans-btn.shake{animation:shake .35s ease}
+@keyframes pulse-ok{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes bounceIn{0%{transform:scale(0);opacity:0}70%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{0%{opacity:0;transform:scale(.6)}70%{transform:scale(1.07)}100%{opacity:1;transform:scale(1)}}
+
+/* Explanations */
+.exp-panel{display:none;flex-direction:column;gap:8px;animation:slideUp .4s ease}
+.exp-panel.show{display:flex}
+.exp-card{background:rgba(0,0,0,.5);border-radius:12px;padding:13px}
+.exp-card.ok{border-left:4px solid #27ae60}
+.exp-card.ko{border-left:4px solid #e74c3c}
+.exp-head{font-weight:900;font-size:.88em;margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.exp-body{font-size:.86em;line-height:1.6;color:#ccd}
+
+.btn-next{background:linear-gradient(135deg,#7d3c98,#9b59b6);color:#fff;
+  font-family:'Montserrat',sans-serif;font-size:1.1em;font-weight:900;padding:15px;
+  border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 20px rgba(142,68,173,.5);
+  transition:all .2s;margin-top:4px}
+.btn-next:hover{filter:brightness(1.15);transform:translateY(-2px)}
+
+/* ─── RESULTS SCREEN ─── */
+#s-results{background:radial-gradient(ellipse at 50% 40%,#1a2a6e 0%,#0d1137 70%)}
+.res-trophy{font-size:80px;text-align:center;animation:bounceIn .8s ease}
+.res-title{font-family:'Montserrat',sans-serif;font-size:1.7em;font-weight:900;text-align:center;margin:8px 0 4px}
+.res-pts{font-family:'Montserrat',sans-serif;font-size:3.2em;font-weight:900;color:var(--gold);text-align:center}
+.res-sub{color:#99a;text-align:center;margin-bottom:24px}
+.res-stats{display:flex;gap:12px;margin-bottom:28px;width:100%;max-width:360px}
+.stat-box{flex:1;background:rgba(255,255,255,.09);border-radius:12px;padding:14px;text-align:center}
+.stat-n{font-family:'Montserrat',sans-serif;font-size:2em;font-weight:900}
+.stat-l{font-size:.75em;color:#aab}
+.res-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+
+/* Overlays */
+.overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:50;pointer-events:none}
+.overlay.show{display:block;animation:flash .4s ease forwards}
+#ov-ok{background:rgba(39,174,96,.28)}
+#ov-ko{background:rgba(192,57,43,.28)}
+@keyframes flash{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
+
+/* Floating +pts */
+.float-pts{position:fixed;font-family:'Montserrat',sans-serif;font-size:1.4em;font-weight:900;
+  color:var(--gold);pointer-events:none;z-index:60;animation:floatUp .9s ease forwards}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-80px)}}
+
+/* Confetti */
+.conf{position:fixed;width:9px;height:9px;border-radius:2px;pointer-events:none;z-index:100;
+  animation:fall linear forwards}
+@keyframes fall{0%{transform:translateY(-20px) rotate(0);opacity:1}
+  100%{transform:translateY(105vh) rotate(720deg);opacity:0}}
+
+@media(max-width:380px){.ans-btn{font-size:.82em;min-height:60px}.q-text{font-size:1em}}
+@media(min-width:600px){.q-text{font-size:1.25em}.ans-btn{font-size:1em;min-height:80px}}
+</style>
+</head>
+<body>
+
+<!-- ░░ START ░░ -->
+<div id="s-start" class="screen">
+  <div class="stars" id="stars-start"></div>
+  <div class="logo">💊</div>
+  <div class="title">FarmaQuiz</div>
+  <div class="subtitle">Formación del equipo · Farmacia Madrid</div>
+  <button class="btn-gold" onclick="iniciar()">¡JUGAR!</button>
+  <div class="start-info">
+    <div class="info-box"><span id="n-preguntas">10</span><small>Preguntas</small></div>
+    <div class="info-box"><span>20s</span><small>Por pregunta</small></div>
+    <div class="info-box"><span>50:50</span><small>Comodín</small></div>
+  </div>
+</div>
+
+<!-- ░░ GAME ░░ -->
+<div id="s-game" class="screen hidden">
+  <div class="stars" id="stars-game"></div>
+
+  <div class="g-header">
+    <div>
+      <div class="g-qnum" id="g-qnum">Pregunta 1 de 10</div>
+    </div>
+    <div class="g-score" id="g-score">0 pts</div>
+    <div class="timer-wrap">
+      <svg class="timer-svg" width="48" height="48" viewBox="0 0 48 48">
+        <circle class="t-bg" cx="24" cy="24" r="20"/>
+        <circle class="t-fill" id="t-fill" cx="24" cy="24" r="20"/>
+      </svg>
+      <div class="t-num" id="t-num">20</div>
+    </div>
+  </div>
+
+  <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+
+  <div class="q-area" id="q-area">
+    <div class="q-cat" id="q-cat">Categoría</div>
+    <div class="q-card">
+      <div class="q-text" id="q-text">Cargando...</div>
+      <img id="q-img" class="q-img" style="display:none" alt="">
+    </div>
+
+    <div class="lifelines">
+      <button class="btn-lifeline" id="btn-5050" onclick="usar5050()">
+        <span>50:50</span><small>Comodín</small>
+      </button>
+    </div>
+
+    <div class="answers-grid" id="answers-grid">
+      <button class="ans-btn" data-o="a" onclick="elegir('a')">
+        <span class="ans-icon">▲</span>
+        <span class="ans-text"><span class="ans-letter">A</span><span id="txt-a"></span></span>
+      </button>
+      <button class="ans-btn" data-o="b" onclick="elegir('b')">
+        <span class="ans-icon">◆</span>
+        <span class="ans-text"><span class="ans-letter">B</span><span id="txt-b"></span></span>
+      </button>
+      <button class="ans-btn" data-o="c" onclick="elegir('c')">
+        <span class="ans-icon">●</span>
+        <span class="ans-text"><span class="ans-letter">C</span><span id="txt-c"></span></span>
+      </button>
+      <button class="ans-btn" data-o="d" onclick="elegir('d')">
+        <span class="ans-icon">■</span>
+        <span class="ans-text"><span class="ans-letter">D</span><span id="txt-d"></span></span>
+      </button>
+    </div>
+
+    <div class="exp-panel" id="exp-panel"></div>
+    <button class="btn-next" id="btn-next" onclick="siguiente()" style="display:none">
+      Siguiente pregunta →
+    </button>
+    <div style="height:20px"></div>
+  </div>
+</div>
+
+<!-- ░░ RESULTS ░░ -->
+<div id="s-results" class="screen hidden">
+  <div class="stars" id="stars-res"></div>
+  <div class="res-trophy" id="res-trophy">🏆</div>
+  <div class="res-title" id="res-title">¡Experto farmacéutico!</div>
+  <div class="res-pts" id="res-pts">0 pts</div>
+  <div class="res-sub" id="res-sub">Has acertado X de Y preguntas</div>
+  <div class="res-stats">
+    <div class="stat-box"><div class="stat-n" id="res-cor" style="color:#27ae60">0</div><div class="stat-l">Correctas</div></div>
+    <div class="stat-box"><div class="stat-n" id="res-err" style="color:#e74c3c">0</div><div class="stat-l">Falladas</div></div>
+    <div class="stat-box"><div class="stat-n" id="res-pct" style="color:var(--gold)">0%</div><div class="stat-l">Aciertos</div></div>
+  </div>
+  <div class="res-btns">
+    <button class="btn-gold" onclick="iniciar()">Volver a jugar</button>
+  </div>
+</div>
+
+<!-- OVERLAYS -->
+<div class="overlay" id="ov-ok"></div>
+<div class="overlay" id="ov-ko"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  BANCO DE PREGUNTAS
+// ═══════════════════════════════════════════════
+const PREGUNTAS = [
+{
+  cat:"🩹 Cuidado Dermatológico · Bayer",
+  q:"¿Cuál es el principio activo de Bepanthen Pomada?",
+  ops:{a:"Vitamina C (ácido ascórbico)",b:"Dexpantenol (Provitamina B5)",c:"Óxido de zinc",d:"Lanolina pura"},
+  ok:"b",
+  exp_ok:"¡Correcto! Bepanthen contiene Dexpantenol 5%. En la piel se convierte en ácido pantoténico (vitamina B5), favoreciendo la regeneración celular y la cicatrización.",
+  exps:{
+    a:"La vitamina C es un antioxidante usado en otros cosméticos, pero no es el principio activo de Bepanthen.",
+    c:"El óxido de zinc se usa en pomadas de pañal como Cinc Flas, con propiedades astringentes y protectoras, pero no es Bepanthen.",
+    d:"La lanolina es un excipiente emoliente que puede aparecer como base, pero no es el principio activo."
+  }
+},
+{
+  cat:"💊 Antiinflamatorios · Menarini",
+  q:"¿Cuál es la ventaja clave de Enantyum (dexketoprofeno) frente al ketoprofeno racémico?",
+  ops:{a:"Es el mismo fármaco, distinta presentación",b:"Solo contiene el enantiómero activo (S): misma eficacia con menor dosis",c:"Es de liberación retardada",d:"Se usa exclusivamente por vía tópica"},
+  ok:"b",
+  exp_ok:"¡Exacto! El dexketoprofeno es el enantiómero S puro del ketoprofeno (el único farmacológicamente activo), lo que permite usar menor dosis con igual eficacia y menos efectos adversos gastrointestinales.",
+  exps:{
+    a:"No es el mismo. El ketoprofeno clásico es mezcla racémica (50% activo + 50% inactivo), mientras que Enantyum es el isómero activo puro.",
+    c:"Enantyum es de liberación inmediata. Inicio de acción en ~30 min es precisamente una de sus ventajas.",
+    d:"Enantyum existe en comprimidos, sobres e inyectable. No es de uso exclusivamente tópico."
+  }
+},
+{
+  cat:"🤧 Antihistamínicos · MSD",
+  q:"¿Puede tomarse Aerius (desloratadina) con alimentos?",
+  ops:{a:"No, siempre en ayunas 30 min antes de comer",b:"Solo después de las comidas para evitar náuseas",c:"Sí, con o sin alimentos indistintamente",d:"Solo por la noche porque produce somnolencia"},
+  ok:"c",
+  exp_ok:"¡Correcto! La desloratadina puede tomarse con o sin alimentos. La absorción no se ve afectada por la comida.",
+  exps:{
+    a:"No es necesario tomarlo en ayunas. A diferencia del omeprazol, la absorción de desloratadina no depende del momento de la ingesta.",
+    b:"No provoca náuseas que justifiquen tomarlo con comida. Es bien tolerado en cualquier circunstancia.",
+    d:"La desloratadina es antihistamínico de 2ª generación: NO produce somnolencia significativa. Puede tomarse a cualquier hora."
+  }
+},
+{
+  cat:"🔥 Protectores Gástricos",
+  q:"¿Cuándo hay que tomar el pantoprazol para que sea más eficaz?",
+  ops:{a:"Después de las comidas principales",b:"Unos 30 minutos antes del desayuno",c:"Al acostarse, antes de dormir",d:"El momento no importa, la absorción es igual"},
+  ok:"b",
+  exp_ok:"¡Correcto! Los IBP actúan bloqueando las bombas de protones activas. Tomarlos 30 min antes del desayuno permite que estén disponibles cuando las bombas se activan al inicio de la comida.",
+  exps:{
+    a:"Si se toma después de comer, las bombas ya se han activado y el fármaco no puede bloquearlas eficazmente. La eficacia cae significativamente.",
+    c:"Por la noche hay menos secreción ácida y menos bombas activas, por lo que la acción sería subóptima para la protección diurna.",
+    d:"Sí importa el momento. Los IBP son profármacos que necesitan pH ácido y bombas activas para convertirse en su forma activa."
+  }
+},
+{
+  cat:"🩹 Apósitos y Curas · Johnson & Johnson",
+  q:"¿Cómo actúa Compeed en una ampolla o rozadura?",
+  ops:{a:"Libera antibiótico local para prevenir infección",b:"Crea un ambiente húmedo que acelera la curación y actúa como segunda piel",c:"Contiene cortisona para reducir la inflamación",d:"Deseca la herida para formar costra protectora"},
+  ok:"b",
+  exp_ok:"¡Muy bien! Compeed es un apósito hidrocoloide que absorbe el exudado y crea un ambiente húmedo óptimo para la cicatrización, reduciendo fricción y dolor.",
+  exps:{
+    a:"Compeed no contiene antibióticos. Para heridas infectadas necesitaríamos productos como Bactroban o Betadine.",
+    c:"No contiene corticoides. Su beneficio es físico/mecánico mediante la tecnología hidrocoloide, no farmacológico.",
+    d:"Es lo contrario: Compeed mantiene un ambiente húmedo, que acelera la cicatrización frente al ambiente seco que favorece la costra."
+  }
+},
+{
+  cat:"💊 Analgésicos · Boehringer Ingelheim",
+  q:"¿Cuál es la advertencia MÁS IMPORTANTE que debes dar al dispensar Nolotil (metamizol)?",
+  ops:{a:"No tomarlo con alcohol",b:"Vigilar signos de agranulocitosis: fiebre súbita, úlceras bucales, escalofríos — acudir urgentemente al médico",c:"No conducir porque produce somnolencia intensa",d:"No tomarlo con insuficiencia renal leve"},
+  ok:"b",
+  exp_ok:"¡Correcto! El riesgo más grave del metamizol es la agranulocitosis (caída de neutrófilos), que aunque rara, puede ser fatal. Los pacientes deben consultar urgente si aparecen esos síntomas.",
+  exps:{
+    a:"Aunque válida como recomendación general, no es la advertencia principal del metamizol. No debe desviar la atención del riesgo hematológico.",
+    c:"El metamizol no produce somnolencia significativa. No es opioide ni sedante. Esta advertencia es más propia de antihistamínicos de 1ª generación.",
+    d:"La precaución renal es especialmente relevante para AINEs (ibuprofeno, diclofenaco). El riesgo hematológico del metamizol es su advertencia más específica y grave."
+  }
+},
+{
+  cat:"🤧 Resfriado y Gripe · Johnson & Johnson",
+  q:"¿Qué combinación de principios activos contiene Frenadol Forte Complex?",
+  ops:{a:"Paracetamol + ibuprofeno + codeína",b:"Paracetamol + dextrometorfano + clorfenamina + cafeína",c:"Metamizol + pseudoefedrina + vitamina C",d:"Ibuprofeno + pseudoefedrina + loratadina"},
+  ok:"b",
+  exp_ok:"¡Correcto! Frenadol Forte Complex: Paracetamol (analgésico/antipirético) + Dextrometorfano (antitusivo) + Clorfenamina (antihistamínico 1ª gen.) + Cafeína (potencia el efecto analgésico).",
+  exps:{
+    a:"Frenadol no contiene ibuprofeno ni codeína. La codeína tiene restricciones como opioide y no aparece en esta fórmula.",
+    c:"El metamizol no está en Frenadol. La vitamina C aparece en algunas presentaciones como suplemento, pero no es la composición correcta de Forte Complex.",
+    d:"Esta combinación no existe en Frenadol. La loratadina es de 2ª generación y no es adecuada para síntomas gripales; Frenadol usa clorfenamina (1ª gen.)."
+  }
+},
+{
+  cat:"💊 Antiinflamatorios",
+  q:"¿Cuál es la dosis máxima de ibuprofeno en automedicación (adulto sano)?",
+  ops:{a:"400 mg/6-8h → máx. 1.200 mg/día",b:"600 mg/4h → máx. 3.600 mg/día",c:"1.200 mg en dosis única",d:"800 mg/8h → máx. 2.400 mg/día"},
+  ok:"a",
+  exp_ok:"¡Correcto! En automedicación (sin receta) el límite es 1.200 mg/día. Con prescripción médica puede llegarse a 2.400 mg/día. Siempre con la dosis mínima eficaz.",
+  exps:{
+    b:"600 mg cada 4 h = 3.600 mg/día, muy por encima del límite. A dosis altas aumenta el riesgo cardiovascular y gastrointestinal.",
+    c:"No existe una dosis única de 1.200 mg validada para automedicación. Siempre distribuir la dosis diaria para minimizar efectos adversos.",
+    d:"800 mg/8h = 2.400 mg/día corresponde al máximo prescrito, pero supera el límite de 1.200 mg/día para uso sin receta."
+  }
+},
+{
+  cat:"🚽 Digestivo · Johnson & Johnson",
+  q:"¿En cuál de estos casos NO debes dispensar Fortasec (loperamida)?",
+  ops:{a:"Diarrea del viajero sin fiebre ni sangre en heces",b:"Diarrea aguda leve en adulto sano sin mucosidad",c:"Diarrea con fiebre alta (39°C) y sangre en heces",d:"Urgencia fecal residual tras gastroenteritis viral leve"},
+  ok:"c",
+  exp_ok:"¡Muy importante! La loperamida está CONTRAINDICADA en diarrea con sangre y fiebre alta, ya que puede indicar infección bacteriana invasiva. Detener la diarrea retendría el patógeno y empeoraría gravemente al paciente.",
+  exps:{
+    a:"La diarrea del viajero sin signos de alarma es una indicación correcta de loperamida para el control sintomático.",
+    b:"La diarrea aguda leve sin signos de alarma en adulto sano es una indicación habitual. Dispensar con recomendaciones de hidratación.",
+    d:"Tras una gastroenteritis viral, la urgencia fecal residual puede tratarse con loperamida una vez pasada la fase aguda, si no hay fiebre ni sangre."
+  }
+},
+{
+  cat:"🌿 Dermatología · GSK",
+  q:"¿Cuánto tiempo debe dejarse actuar el champú Nizoral (ketoconazol 2%) en el cuero cabelludo?",
+  ops:{a:"Se aclara inmediatamente después de aplicar",b:"3-5 minutos antes de aclarar",c:"Se deja toda la noche",d:"No hay tiempo de espera, es solo un champú"},
+  ok:"b",
+  exp_ok:"¡Correcto! El ketoconazol necesita 3-5 minutos de contacto con el cuero cabelludo para actuar eficazmente contra Malassezia, la levadura causante de la dermatitis seborreica.",
+  exps:{
+    a:"Si se aclara de inmediato, el tiempo de contacto del antifúngico es insuficiente. El ketoconazol necesita tiempo para penetrar y actuar.",
+    c:"Dejarlo toda la noche no está indicado ni es necesario. El contacto prolongado puede irritar. 3-5 minutos es el tiempo validado en ficha técnica.",
+    d:"El tiempo de contacto es esencial. Sin la pausa, el producto actúa más como champú cosmético que como antifúngico terapéutico."
+  }
+}
+];
+
+// ═══════════════════════════════════════════════
+//  ESTADO
+// ═══════════════════════════════════════════════
+const G = {
+  preguntas:[],
+  idx:0,
+  puntos:0,
+  correctas:0,
+  respondida:false,
+  timer:null,
+  seg:0,
+  comodinUsado:false
+};
+
+const CIRC = 2*Math.PI*20; // r=20
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+function iniciar(){
+  G.preguntas = [...PREGUNTAS].sort(()=>Math.random()-.5);
+  G.idx=0; G.puntos=0; G.correctas=0; G.comodinUsado=false;
+  document.getElementById('n-preguntas').textContent = G.preguntas.length;
+  pantalla('s-game');
+  mostrarPregunta();
+}
+
+function mostrarPregunta(){
+  const p = G.preguntas[G.idx];
+  G.respondida = false;
+
+  document.getElementById('g-qnum').textContent = `Pregunta ${G.idx+1} de ${G.preguntas.length}`;
+  document.getElementById('q-cat').textContent = p.cat;
+  document.getElementById('q-text').textContent = p.q;
+  document.getElementById('g-score').textContent = G.puntos+' pts';
+
+  const pct = (G.idx/G.preguntas.length)*100;
+  document.getElementById('prog-fill').style.width = pct+'%';
+
+  const img = document.getElementById('q-img');
+  if(p.img){ img.src=p.img; img.style.display='block'; }
+  else img.style.display='none';
+
+  ['a','b','c','d'].forEach(l=>{
+    document.getElementById('txt-'+l).textContent = p.ops[l];
+    const btn = document.querySelector('[data-o="'+l+'"]');
+    btn.className = 'ans-btn';
+    btn.disabled = false;
+    btn.style.opacity='';
+    btn.style.transform='';
+  });
+
+  document.getElementById('exp-panel').className='exp-panel';
+  document.getElementById('btn-next').style.display='none';
+
+  const c50 = document.getElementById('btn-5050');
+  c50.disabled = G.comodinUsado;
+
+  // Scroll to top of question area
+  document.getElementById('q-area').scrollTop=0;
+
+  iniciarTimer(20);
+}
+
+// ═══════════════════════════════════════════════
+//  TIMER
+// ═══════════════════════════════════════════════
+function iniciarTimer(seg){
+  clearInterval(G.timer);
+  G.seg = seg;
+  const fill = document.getElementById('t-fill');
+  const num  = document.getElementById('t-num');
+  fill.style.strokeDasharray = CIRC;
+
+  function tick(){
+    const ratio = G.seg/seg;
+    fill.style.strokeDashoffset = CIRC*(1-ratio);
+    num.textContent = G.seg;
+    fill.style.stroke = G.seg<=5 ? '#e74c3c' : '#f1c40f';
+    num.style.color   = G.seg<=5 ? '#e74c3c' : '#fff';
+    if(G.seg<=5 && G.seg>0) beep('tick');
+    if(G.seg<=0){ clearInterval(G.timer); if(!G.respondida) tiempoOut(); }
+    G.seg--;
+  }
+  tick();
+  G.timer = setInterval(tick,1000);
+}
+
+function tiempoOut(){
+  G.respondida=true;
+  const p=G.preguntas[G.idx];
+  document.querySelector('[data-o="'+p.ok+'"]').classList.add('correct');
+  ['a','b','c','d'].forEach(l=>document.querySelector('[data-o="'+l+'"]').disabled=true);
+  mostrarExplicaciones(null,p);
+  document.getElementById('btn-next').style.display='block';
+}
+
+// ═══════════════════════════════════════════════
+//  RESPUESTA
+// ═══════════════════════════════════════════════
+function elegir(l){
+  if(G.respondida) return;
+  G.respondida=true;
+  clearInterval(G.timer);
+  const p=G.preguntas[G.idx];
+  const ok = l===p.ok;
+
+  ['a','b','c','d'].forEach(x=>{
+    const b=document.querySelector('[data-o="'+x+'"]');
+    b.disabled=true;
+    if(x===p.ok) b.classList.add('correct');
+    else if(x===l) b.classList.add('wrong','shake');
+    else b.classList.add('dimmed');
+  });
+
+  if(ok){
+    G.correctas++;
+    const bonus = Math.max(100, G.seg*12+100);
+    G.puntos+=bonus;
+    document.getElementById('g-score').textContent=G.puntos+' pts';
+    flash('ok');
+    beep('ok');
+    showFloatPts('+'+bonus+' pts');
+    confettiBurst(12);
+  } else {
+    flash('ko');
+    beep('ko');
+  }
+
+  mostrarExplicaciones(l,p);
+  document.getElementById('btn-next').style.display='block';
+
+  // Auto-scroll to explanations after short delay
+  setTimeout(()=>{
+    document.getElementById('exp-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
+  },300);
+}
+
+function mostrarExplicaciones(elegida, p){
+  const panel=document.getElementById('exp-panel');
+  panel.innerHTML='';
+
+  // Correct explanation
+  const divOk=document.createElement('div');
+  divOk.className='exp-card ok';
+  divOk.innerHTML=`<div class="exp-head">✅ &nbsp;${p.ok.toUpperCase()}) ${p.ops[p.ok]}</div><div class="exp-body">${p.exp_ok}</div>`;
+  panel.appendChild(divOk);
+
+  // Wrong explanations
+  ['a','b','c','d'].forEach(l=>{
+    if(l!==p.ok && p.exps[l]){
+      const d=document.createElement('div');
+      d.className='exp-card ko';
+      d.innerHTML=`<div class="exp-head">❌ &nbsp;${l.toUpperCase()}) ${p.ops[l]}</div><div class="exp-body">${p.exps[l]}</div>`;
+      panel.appendChild(d);
+    }
+  });
+
+  panel.classList.add('show');
+}
+
+// ═══════════════════════════════════════════════
+//  SIGUIENTE / RESULTADOS
+// ═══════════════════════════════════════════════
+function siguiente(){
+  G.idx++;
+  if(G.idx>=G.preguntas.length) resultados();
+  else mostrarPregunta();
+}
+
+function resultados(){
+  clearInterval(G.timer);
+  const pct=Math.round((G.correctas/G.preguntas.length)*100);
+  document.getElementById('res-pts').textContent=G.puntos+' pts';
+  document.getElementById('res-cor').textContent=G.correctas;
+  document.getElementById('res-err').textContent=G.preguntas.length-G.correctas;
+  document.getElementById('res-pct').textContent=pct+'%';
+  document.getElementById('res-sub').textContent=`Has acertado ${G.correctas} de ${G.preguntas.length} preguntas`;
+
+  let trofeo,msg;
+  if(pct>=90){trofeo='🏆';msg='¡Experto farmacéutico!';}
+  else if(pct>=70){trofeo='🥇';msg='¡Muy bien! Sigue formándote';}
+  else if(pct>=50){trofeo='🥈';msg='Bien, puedes mejorar';}
+  else {trofeo='📚';msg='¡Hay que repasar más!';}
+
+  document.getElementById('res-trophy').textContent=trofeo;
+  document.getElementById('res-title').textContent=msg;
+
+  pantalla('s-results');
+  if(pct>=70) setTimeout(()=>confetti(80),300);
+}
+
+// ═══════════════════════════════════════════════
+//  COMODÍN 50:50
+// ═══════════════════════════════════════════════
+function usar5050(){
+  if(G.comodinUsado||G.respondida) return;
+  G.comodinUsado=true;
+  const p=G.preguntas[G.idx];
+  const malas=['a','b','c','d'].filter(l=>l!==p.ok).sort(()=>Math.random()-.5).slice(0,2);
+  malas.forEach(l=>{
+    const b=document.querySelector('[data-o="'+l+'"]');
+    b.disabled=true; b.style.opacity='.12'; b.style.transform='scale(.92)';
+  });
+  document.getElementById('btn-5050').disabled=true;
+}
+
+// ═══════════════════════════════════════════════
+//  HELPERS: overlay, audio, confetti
+// ═══════════════════════════════════════════════
+function pantalla(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function flash(tipo){
+  const el=document.getElementById('ov-'+tipo);
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),400);
+}
+
+function showFloatPts(txt){
+  const el=document.createElement('div');
+  el.className='float-pts'; el.textContent=txt;
+  el.style.cssText='top:20%;left:50%;transform:translateX(-50%)';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),900);
+}
+
+function beep(tipo){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    if(tipo==='ok'){
+      o.frequency.setValueAtTime(523,ctx.currentTime);
+      o.frequency.setValueAtTime(659,ctx.currentTime+.12);
+      o.frequency.setValueAtTime(784,ctx.currentTime+.24);
+      g.gain.setValueAtTime(.25,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.5);
+    } else if(tipo==='ko'){
+      o.frequency.setValueAtTime(300,ctx.currentTime);
+      o.frequency.setValueAtTime(180,ctx.currentTime+.25);
+      g.gain.setValueAtTime(.25,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.45);
+    } else {
+      o.frequency.setValueAtTime(880,ctx.currentTime);
+      g.gain.setValueAtTime(.08,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.08);
+    }
+    o.start(); o.stop(ctx.currentTime+.6);
+    setTimeout(()=>ctx.close(),800);
+  }catch(e){}
+}
+
+function confettiBurst(n){
+  const cols=['#f1c40f','#27ae60','#fff'];
+  for(let i=0;i<n;i++){
+    setTimeout(()=>{
+      const d=document.createElement('div');
+      d.className='conf';
+      d.style.left=Math.random()*100+'vw';
+      d.style.background=cols[Math.floor(Math.random()*cols.length)];
+      d.style.animationDuration=(Math.random()*1+.8)+'s';
+      document.body.appendChild(d);
+      setTimeout(()=>d.remove(),1800);
+    },i*40);
+  }
+}
+
+function confetti(n){
+  const cols=['#f1c40f','#e74c3c','#3498db','#27ae60','#9b59b6','#e67e22'];
+  for(let i=0;i<n;i++){
+    setTimeout(()=>{
+      const d=document.createElement('div');
+      d.className='conf';
+      d.style.left=Math.random()*100+'vw';
+      d.style.background=cols[Math.floor(Math.random()*cols.length)];
+      const sz=Math.random()*8+4;
+      d.style.width=sz+'px'; d.style.height=sz+'px';
+      d.style.borderRadius=Math.random()>.5?'50%':'2px';
+      d.style.animationDuration=(Math.random()*2+1.5)+'s';
+      document.body.appendChild(d);
+      setTimeout(()=>d.remove(),3500);
+    },i*28);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  STARS BACKGROUND
+// ═══════════════════════════════════════════════
+function crearEstrellas(id){
+  const c=document.getElementById(id);
+  if(!c) return;
+  for(let i=0;i<70;i++){
+    const s=document.createElement('div');
+    s.className='star';
+    const sz=Math.random()*2.5+.5;
+    s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--delay:${Math.random()*4}s;--dur:${Math.random()*3+2}s`;
+    c.appendChild(s);
+  }
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  crearEstrellas('stars-start');
+  crearEstrellas('stars-game');
+  crearEstrellas('stars-res');
+});
+</script>
+</body>
+</html>
